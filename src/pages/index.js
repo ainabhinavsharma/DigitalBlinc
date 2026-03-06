@@ -1,74 +1,87 @@
 import { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import SplashScreen from '../components/SplashScreen';
-import Header from '../components/Layout/Header';
-import Footer from '../components/Layout/Footer';
 import StepWizard from '../components/StepWizard';
 import ProcessingState from '../components/ProcessingState';
 import SelfieCamera from '../components/SelfieCamera';
 import AgreementPDF from '../components/AgreementPDF';
 import VerificationScreen from '../components/VerificationScreen';
 
-export default function DigitalBlincPro() {
-  const [screen, setScreen] = useState('splash');
-  const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState({
+export default function DigitalBlinc() {
+  const [screen, setScreen] = useState('splash'); 
+  const [data, setData] = useState({ 
     name: '', email: '', adhaar: '', pan: '', 
-    bankName: '', account: '', ifsc: '', selfie: null
+    bank: '', account: '', ifsc: '', selfie: null 
   });
 
-  // Total steps for progress bar: Name, Email, Aadhaar, PAN, Bank, Account, IFSC, Selfie
-  const totalSteps = 8;
-
   useEffect(() => {
-    // 1. Initial Splash Screen
-    const timer = setTimeout(() => setScreen('wizard'), 3000);
+    const timer = setTimeout(() => setScreen('identity'), 3000);
     return () => clearTimeout(timer);
   }, []);
 
-  const nextStep = () => {
-    if (step < totalSteps - 1) {
-      setStep(step + 1);
-    } else {
-      setScreen('processing');
-    }
-  };
-
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-white shadow-2xl relative overflow-hidden">
-      <AnimatePresence mode="wait">
-        {screen === 'splash' && <SplashScreen key="splash" />}
+    <div className="app-shell">
+      {/* PERSISTENT HEADER */}
+      {screen !== 'splash' && (
+        <header className="p-6 border-b border-slate-50 flex justify-between items-center">
+          <span className="font-extrabold text-lg tracking-tight text-slate-800">Digital Blinc</span>
+          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+        </header>
+      )}
 
-        {screen === 'wizard' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col">
-            <Header progress={(step / totalSteps) * 100} />
-            <div className="flex-1 px-6 pt-10">
-              <StepWizard 
-                step={step} 
-                data={formData} 
-                updateData={(val) => setFormData({...formData, ...val})} 
-              />
-            </div>
-            <Footer onNext={nextStep} step={step} data={formData} />
-          </motion.div>
-        )}
+      <main className="flex-1 flex flex-col">
+        <AnimatePresence mode="wait">
+          {screen === 'splash' && <SplashScreen key="splash" />}
+          
+          {screen === 'identity' && (
+            <StepWizard 
+              key="id-steps"
+              mode="identity" 
+              data={data} 
+              update={(v) => setData(prev => ({...prev, ...v}))} 
+              onComplete={() => setScreen('wait')} 
+            />
+          )}
 
-        {screen === 'processing' && (
-          <ProcessingState key="proc" onComplete={() => setScreen('agreement')} />
-        )}
+          {screen === 'wait' && (
+            <ProcessingState key="wait" onComplete={() => setScreen('bank')} />
+          )}
 
-        {screen === 'agreement' && (
-          <AgreementPDF 
-            key="pdf" 
-            data={formData} 
-            onDone={() => setScreen('verification')} 
-          />
-        )}
+          {screen === 'bank' && (
+            <StepWizard 
+              key="bank-steps"
+              mode="bank" 
+              data={data} 
+              update={(v) => setData(prev => ({...prev, ...v}))} 
+              onComplete={() => setScreen('selfie')} 
+            />
+          )}
 
-        {screen === 'verification' && (
-          <VerificationScreen key="verify" data={formData} />
-        )}
-      </AnimatePresence>
+          {screen === 'selfie' && (
+            <SelfieCamera key="selfie" onCapture={(img) => {
+              setData(prev => ({...prev, selfie: img}));
+              setScreen('agreement');
+            }} />
+          )}
+
+          {screen === 'agreement' && (
+            <AgreementPDF key="pdf" data={data} onDone={() => setScreen('verify')} />
+          )}
+
+          {screen === 'verify' && (
+            <VerificationScreen key="verify" data={data} />
+          )}
+        </AnimatePresence>
+      </main>
+
+      {/* PERSISTENT FOOTER */}
+      {screen !== 'splash' && (
+        <footer className="p-4 bg-slate-50/50 text-center">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            © 2026 Digital Blinc · Secure Lending Partner
+          </p>
+        </footer>
+      )}
     </div>
   );
 }
