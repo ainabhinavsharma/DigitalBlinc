@@ -1,4 +1,5 @@
 import { ChevronLeft } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function Header({ progress }) {
   return (
