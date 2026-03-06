@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import SplashScreen from '../components/SplashScreen';
 import StepWizard from '../components/StepWizard';
 import ProcessingState from '../components/ProcessingState';
+import ApprovalScreen from '../components/ApprovalScreen';
 import SelfieCamera from '../components/SelfieCamera';
 import AgreementPDF from '../components/AgreementPDF';
 import VerificationScreen from '../components/VerificationScreen';
 
-export default function DigitalBlinc() {
+export default function DigitalBlincPro() {
   const [screen, setScreen] = useState('splash'); 
   const [data, setData] = useState({ 
     name: '', email: '', adhaar: '', pan: '', 
@@ -15,70 +16,46 @@ export default function DigitalBlinc() {
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => setScreen('identity'), 3000);
+    const timer = setTimeout(() => setScreen('identity'), 3500);
     return () => clearTimeout(timer);
   }, []);
 
+  const getTheme = () => {
+    if (screen === 'wait') return 'bg-[#0f172a] text-white';
+    if (screen === 'approval' || screen === 'agreement' || screen === 'verify') return 'bg-emerald-50';
+    return 'bg-white';
+  };
+
   return (
-    <div className="app-shell">
-      {/* PERSISTENT HEADER */}
+    <div className={`app-viewport ${getTheme()} transition-colors duration-1000`}>
+      {/* HEADER: Text Only */}
       {screen !== 'splash' && (
-        <header className="p-6 border-b border-slate-50 flex justify-between items-center">
-          <span className="font-extrabold text-lg tracking-tight text-slate-800">Digital Blinc</span>
-          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+        <header className="px-8 pt-8 pb-4 flex justify-between items-center z-10">
+          <h1 className={`font-black text-xl tracking-tighter ${screen === 'wait' ? 'text-white' : 'text-slate-900'}`}>
+            Digital Blinc
+          </h1>
+          <div className="flex gap-1">
+            <div className={`w-1.5 h-1.5 rounded-full ${screen === 'wait' ? 'bg-emerald-400' : 'bg-indigo-600'} animate-pulse`} />
+          </div>
         </header>
       )}
 
-      <main className="flex-1 flex flex-col">
-        <AnimatePresence mode="wait">
-          {screen === 'splash' && <SplashScreen key="splash" />}
-          
-          {screen === 'identity' && (
-            <StepWizard 
-              key="id-steps"
-              mode="identity" 
-              data={data} 
-              update={(v) => setData(prev => ({...prev, ...v}))} 
-              onComplete={() => setScreen('wait')} 
-            />
-          )}
+      <AnimatePresence mode="wait">
+        {screen === 'splash' && <SplashScreen key="s" />}
+        {screen === 'identity' && <StepWizard key="i" mode="identity" data={data} update={(v)=>setData({...data, ...v})} onComplete={()=>setScreen('wait')} />}
+        {screen === 'wait' && <ProcessingState key="w" onComplete={()=>setScreen('approval')} />}
+        {screen === 'approval' && <ApprovalScreen key="a" onNext={()=>setScreen('bank')} />}
+        {screen === 'bank' && <StepWizard key="b" mode="bank" data={data} update={(v)=>setData({...data, ...v})} onComplete={()=>setScreen('selfie')} />}
+        {screen === 'selfie' && <SelfieCamera key="sc" onCapture={(img)=>{setData({...data, selfie:img}); setScreen('agreement')}} />}
+        {screen === 'agreement' && <AgreementPDF key="p" data={data} onDone={()=>setScreen('verify')} />}
+        {screen === 'verify' && <VerificationScreen key="v" data={data} />}
+      </AnimatePresence>
 
-          {screen === 'wait' && (
-            <ProcessingState key="wait" onComplete={() => setScreen('bank')} />
-          )}
-
-          {screen === 'bank' && (
-            <StepWizard 
-              key="bank-steps"
-              mode="bank" 
-              data={data} 
-              update={(v) => setData(prev => ({...prev, ...v}))} 
-              onComplete={() => setScreen('selfie')} 
-            />
-          )}
-
-          {screen === 'selfie' && (
-            <SelfieCamera key="selfie" onCapture={(img) => {
-              setData(prev => ({...prev, selfie: img}));
-              setScreen('agreement');
-            }} />
-          )}
-
-          {screen === 'agreement' && (
-            <AgreementPDF key="pdf" data={data} onDone={() => setScreen('verify')} />
-          )}
-
-          {screen === 'verify' && (
-            <VerificationScreen key="verify" data={data} />
-          )}
-        </AnimatePresence>
-      </main>
-
-      {/* PERSISTENT FOOTER */}
+      {/* FOOTER: Copyright Only */}
       {screen !== 'splash' && (
-        <footer className="p-4 bg-slate-50/50 text-center">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            © 2026 Digital Blinc · Secure Lending Partner
+        <footer className="p-6 text-center">
+          <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-[0.4em]">
+            © 2026 Digital Blinc · All Rights Reserved
           </p>
         </footer>
       )}

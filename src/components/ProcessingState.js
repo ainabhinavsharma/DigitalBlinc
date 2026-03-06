@@ -1,78 +1,45 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Activity, Search, Database } from 'lucide-react';
 
-const STATUS_MSGS = [
-  { icon: Search, text: "Verifying Identity with UIDAI..." },
-  { icon: Database, text: "Fetching CIBIL Credit Report..." },
-  { icon: Activity, text: "Running AI Risk Assessment..." },
-  { icon: ShieldCheck, text: "Finalizing Loan Terms..." }
-];
+const STEPS = ["Verifying Aadhaar (UIDAI)...", "CIBIL Record Analysis...", "Income Stability Check...", "AI Risk Scoring...", "Finalizing Sanction..."];
 
 export default function ProcessingState({ onComplete }) {
-  const [seconds, setSeconds] = useState(300); // 5 Minutes
+  const [prog, setProg] = useState(0);
   const [msgIdx, setMsgIdx] = useState(0);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSeconds(prev => {
-        if (prev === 30) { // At 4:30 mark (30 secs left)
-           // Trigger OneSignal Push Notification Logic here
-           console.log("Push Notification Sent: Assessment Complete!");
-        }
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    const msgTimer = setInterval(() => {
-      setMsgIdx(prev => (prev + 1) % STATUS_MSGS.length);
-    }, 5000);
-
-    return () => { clearInterval(timer); clearInterval(msgTimer); };
+    const t = setInterval(() => setProg(p => p >= 100 ? 100 : p + 0.34), 1000); // 5 mins
+    const m = setInterval(() => setMsgIdx(p => (p + 1) % STEPS.length), 6000);
+    return () => { clearInterval(t); clearInterval(m); };
   }, []);
 
-  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
-  const CurrentStatus = STATUS_MSGS[msgIdx];
-
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-10 bg-slate-50/50">
-      <div className="relative mb-12">
-        <motion.div 
-          animate={{ rotate: 360 }} 
-          transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
-          className="w-48 h-48 border-2 border-dashed border-slate-200 rounded-full"
-        />
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-black text-slate-900">{formatTime(seconds)}</span>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Remaining</span>
+    <div className="flex-1 flex flex-col p-8 items-center justify-center text-white">
+      <div className="relative w-72 h-72 mb-16 flex items-center justify-center wait-glow rounded-full">
+        <svg className="w-full h-full transform -rotate-90">
+          <circle cx="144" cy="144" r="130" stroke="rgba(255,255,255,0.05)" strokeWidth="4" fill="transparent" />
+          <motion.circle cx="144" cy="144" r="130" stroke="#10b981" strokeWidth="8" fill="transparent" 
+            strokeDasharray="816" strokeDashoffset={816 - (816 * prog) / 100} strokeLinecap="round" />
+        </svg>
+        <div className="absolute flex flex-col items-center">
+          <span className="text-7xl font-black tracking-tighter">{Math.floor(prog)}%</span>
+          <span className="text-emerald-400 font-bold text-xs tracking-[0.3em]">ANALYSIS</span>
         </div>
       </div>
 
       <AnimatePresence mode="wait">
-        <motion.div 
-          key={msgIdx}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="flex items-center gap-3 bg-white px-6 py-3 rounded-2xl shadow-sm border border-slate-100"
+        <motion.p key={msgIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="text-slate-400 font-medium text-center text-lg italic"
         >
-          <CurrentStatus.icon className="w-4 h-4 text-indigo-600 animate-pulse" />
-          <span className="text-sm font-semibold text-slate-600">{CurrentStatus.text}</span>
-        </motion.div>
+          {STEPS[msgIdx]}
+        </motion.p>
       </AnimatePresence>
 
-      {seconds === 0 && (
-        <motion.button 
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          onClick={onComplete}
-          className="mt-12 w-full bg-green-600 text-white font-extrabold py-5 rounded-3xl shadow-lg shadow-green-100 animate-bounce"
+      {prog >= 100 && (
+        <motion.button initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} onClick={onComplete}
+          className="mt-16 w-full h-20 bg-emerald-500 text-[#0f172a] font-black rounded-[2.5rem] text-xl shadow-[0_20px_50px_rgba(16,185,129,0.3)]"
         >
-          Assessment Complete · Next
+          VIEW STATUS
         </motion.button>
       )}
     </div>
